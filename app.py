@@ -7,10 +7,22 @@ from src.utils import load_players, get_random_player
 
 # --- 1. FIREBASE & PERISTENCE CONFIG ---
 def get_user_id():
-    """Generates or retrieves a unique ID for this device."""
-    if "user_id" not in st.session_state:
-        # Falls back to a random uuid if hardware ID fails
-        st.session_state.user_id = str(uuid.getnode())
+    """Retrieves a unique ID from the URL or generates a new one."""
+    # 1. Check if it's already in session state
+    if "user_id" in st.session_state:
+        return st.session_state.user_id
+
+    # 2. Check if it's in the URL (so it persists on refresh)
+    url_id = st.query_params.get("uid")
+    
+    if url_id:
+        st.session_state.user_id = url_id
+    else:
+        # 3. Create a brand new unique ID for this specific browser session
+        new_id = str(uuid.uuid4())[:8] # Short unique string
+        st.session_state.user_id = new_id
+        st.query_params["uid"] = new_id
+        
     return st.session_state.user_id
 
 def init_db():
@@ -72,9 +84,12 @@ def save_stats():
 
 # --- 2. GAME INITIALIZATION ---
 init_db()
+current_uid = get_user_id() # Force ID generation/retrieval
 
-if 'stats' not in st.session_state:
+# Always load stats based on the active UID
+if 'stats' not in st.session_state or st.session_state.get('last_uid') != current_uid:
     st.session_state.stats = load_stats()
+    st.session_state.last_uid = current_uid
 
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
