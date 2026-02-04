@@ -59,18 +59,26 @@ def init_db():
             st.session_state.db = None
 
 def load_stats():
-    user_id = st.session_state.get('user_id')
-    if not user_id:
-        return None # Don't return defaults yet!
-    
+    user_id = st.session_state.user_id
     if st.session_state.db:
         doc = st.session_state.db.collection("users").document(user_id).get()
         if doc.exists:
             data = doc.to_dict()
-            # ... (keep your existing formatting logic here) ...
+            
+            # Restore the distribution stats
+            for mode in ['daily', 'random']:
+                if mode in data:
+                    data[mode]['distribution'] = {int(k): v for k, v in data[mode].get('distribution', {}).items()}
+            
+            # --- CRITICAL RESTORATION LOGIC ---
+            # If the user has guesses for TODAY, prep the session state
+            if data.get('daily', {}).get('last_played_date') == str(date.today()):
+                # We store these in data so the Init block can see them
+                data['restorable_guesses'] = data.get('current_guesses', [])
+                data['restorable_mode'] = data.get('last_mode', 'Daily')
+            
             return data
             
-    # ONLY return defaults if we are SURE the user_id exists but has no doc
     return {
         "daily": {"played": 0, "won": 0, "current_streak": 0, "max_streak": 0, "distribution": {i: 0 for i in range(1, 7)}, "last_played_date": None},
         "random": {"played": 0, "won": 0, "current_streak": 0, "distribution": {i: 0 for i in range(1, 7)}}
@@ -98,8 +106,8 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
+# 1. ID Handshake
 if 'user_id' not in st.session_state:
-    # Use a placeholder to stop the rest of the script from running
     st.info("🔄 Connecting to server...")
     uid = cookie_manager.get("footyfeud_uid")
     
@@ -107,7 +115,6 @@ if 'user_id' not in st.session_state:
         st.session_state.user_id = uid
         st.rerun()
     else:
-        # Give it a few attempts before giving up and making a new one
         time.sleep(0.5) 
         uid = cookie_manager.get("footyfeud_uid")
         if not uid:
@@ -116,18 +123,37 @@ if 'user_id' not in st.session_state:
             st.session_state.user_id = uid
             st.rerun()
 
-# 3. Only load stats once User ID is confirmed
+# 2. Data Loading & MID-GAME RESTORATION
 if 'stats' not in st.session_state and 'user_id' in st.session_state:
-    st.session_state.stats = load_stats()
+    data = load_stats()
+    st.session_state.stats = data
+    
+    # --- START RESTORATION LOGIC ---
+    today_str = str(date.today())
+    
+    # Check if the database says we played today
+    is_daily_today = data.get('daily', {}).get('last_played_date') == today_str
+    
+    if is_daily_today and data.get('last_mode') == "Daily":
+        # 1. Pull guesses back into the live list
+        st.session_state.guesses = data.get('current_guesses', [])
+        
+        # 2. Set flags to skip the menu and welcome screens
+        st.session_state.game_mode = "Daily"
+        st.session_state.has_seen_help = True 
+        
+        # 3. Determine if the game was already finished
+        secret_name = data.get('secret_name_for_day')
+        if len(st.session_state.guesses) >= 6 or (
+            len(st.session_state.guesses) > 0 and 
+            st.session_state.guesses[-1]['name'] == secret_name
+        ):
+            st.session_state.game_over = True
+        else:
+            st.session_state.game_over = False
+    # --- END RESTORATION LOGIC ---
 
-# 3. GLOBAL FALLBACKS (To prevent AttributeErrors)
-if 'guesses' not in st.session_state:
-    st.session_state.guesses = []
-if 'game_over' not in st.session_state:
-    st.session_state.game_over = False
-
-# 3. GLOBAL SAFETY FALLBACKS 
-# This prevents the AttributeError in your screenshot
+# 3. GLOBAL SAFETY FALLBACKS (Only sets if not restored above)
 if 'guesses' not in st.session_state:
     st.session_state.guesses = []
 if 'game_over' not in st.session_state:
