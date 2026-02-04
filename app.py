@@ -106,43 +106,43 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. ID Handshake
+# 1. THE ROBUST HANDSHAKE
 if 'user_id' not in st.session_state:
-    st.info("🔄 Connecting to server...")
+    # Try to grab the cookie
     uid = cookie_manager.get("footyfeud_uid")
     
-    if uid:
+    # If the cookie isn't there yet, we show a loading spinner and wait
+    if uid is None:
+        with st.spinner("Authenticating..."):
+            time.sleep(0.6) # Essential: gives the JS component time to load
+            uid = cookie_manager.get("footyfeud_uid")
+            
+            # If after waiting it's still none, it's truly a new user
+            if uid is None:
+                uid = str(uuid.uuid4())[:8]
+                cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
+        
+        # Save to state and rerun so the rest of the app sees the ID
         st.session_state.user_id = uid
         st.rerun()
     else:
-        time.sleep(0.5) 
-        uid = cookie_manager.get("footyfeud_uid")
-        if not uid:
-            uid = str(uuid.uuid4())[:8]
-            cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
-            st.session_state.user_id = uid
-            st.rerun()
+        # If we found it immediately, save it
+        st.session_state.user_id = uid
 
-# 2. Data Loading & MID-GAME RESTORATION
+# 2. DATA LOADING & MID-GAME RESTORATION
 if 'stats' not in st.session_state and 'user_id' in st.session_state:
     data = load_stats()
     st.session_state.stats = data
     
-    # --- START RESTORATION LOGIC ---
+    # --- RESTORATION LOGIC ---
     today_str = str(date.today())
-    
-    # Check if the database says we played today
     is_daily_today = data.get('daily', {}).get('last_played_date') == today_str
     
     if is_daily_today and data.get('last_mode') == "Daily":
-        # 1. Pull guesses back into the live list
         st.session_state.guesses = data.get('current_guesses', [])
-        
-        # 2. Set flags to skip the menu and welcome screens
         st.session_state.game_mode = "Daily"
         st.session_state.has_seen_help = True 
         
-        # 3. Determine if the game was already finished
         secret_name = data.get('secret_name_for_day')
         if len(st.session_state.guesses) >= 6 or (
             len(st.session_state.guesses) > 0 and 
@@ -151,17 +151,12 @@ if 'stats' not in st.session_state and 'user_id' in st.session_state:
             st.session_state.game_over = True
         else:
             st.session_state.game_over = False
-    # --- END RESTORATION LOGIC ---
 
-# 3. GLOBAL SAFETY FALLBACKS (Only sets if not restored above)
-if 'guesses' not in st.session_state:
-    st.session_state.guesses = []
-if 'game_over' not in st.session_state:
-    st.session_state.game_over = False
-if 'has_seen_help' not in st.session_state:
-    st.session_state.has_seen_help = False
-if 'game_mode' not in st.session_state:
-    st.session_state.game_mode = None
+# 3. GLOBAL SAFETY FALLBACKS
+if 'guesses' not in st.session_state: st.session_state.guesses = []
+if 'game_over' not in st.session_state: st.session_state.game_over = False
+if 'has_seen_help' not in st.session_state: st.session_state.has_seen_help = False
+if 'game_mode' not in st.session_state: st.session_state.game_mode = None
 
 # --- 3. HELPER FUNCTIONS ---
 
