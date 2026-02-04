@@ -248,6 +248,17 @@ def handle_guess():
         st.session_state.player_selector = ""
 
 # --- 4. UI LAYOUT ---
+if "last_checked_date" not in st.session_state:
+    st.session_state.last_checked_date = date.today()
+
+if st.session_state.last_checked_date != date.today():
+    st.session_state.last_checked_date = date.today()
+    # Force a reset of the daily game state for the new day
+    if st.session_state.get('game_mode') == "Daily":
+        for key in ['secret_player', 'guesses', 'game_over']:
+            if key in st.session_state: del st.session_state[key]
+    st.rerun()
+
 h_col1, h_col2 = st.columns([0.85, 0.15])
 with h_col1: st.title("⚽ FootyFeud")
 with h_col2: 
@@ -272,10 +283,34 @@ elif st.session_state.game_mode is None:
             st.rerun()
 
 else:
+    # --- SAFETY CHECK: Initialize mode-specific data before rendering UI ---
+    if 'all_players' not in st.session_state:
+        st.session_state.all_players = load_players()
+
+    if 'secret_player' not in st.session_state or st.session_state.secret_player is None:
+        if st.session_state.game_mode == "Daily":
+            # --- SEEDING LOGIC: Same player for everyone today ---
+            today_seed = int(date.today().strftime("%Y%m%d"))
+            random.seed(today_seed)
+            st.session_state.secret_player = random.choice(st.session_state.all_players)
+            random.seed() # Reset seed so Random Mode stays random
+        else:
+            # Logic for Random: Pick any player
+            st.session_state.secret_player = get_random_player(st.session_state.all_players)
+        
+        # Ensure guesses are ready
+        if 'guesses' not in st.session_state:
+            st.session_state.guesses = []
+        if 'game_over' not in st.session_state:
+            st.session_state.game_over = False
+
     # --- GAMEPLAY ---
     st.caption(f"Mode: {st.session_state.game_mode} | Guess: {len(st.session_state.guesses)}/6")
     
-    is_win = len(st.session_state.guesses) > 0 and st.session_state.guesses[-1]['name'] == st.session_state.secret_player['name']
+    # Calculate win state safely
+    is_win = (len(st.session_state.guesses) > 0 and 
+              st.session_state.guesses[-1]['name'] == st.session_state.secret_player['name'])
+    
     display_player_reveal(st.session_state.secret_player['img_url'], is_win)
 
     # LOCK CHECK FOR DAILY
@@ -302,8 +337,10 @@ else:
                 if st.button("🏠 Menu", use_container_width=True): reset_to_menu()
             with e_col2:
                 if st.button("🔄 Next Round", use_container_width=True):
-                    if st.session_state.game_mode == "Random": play_another_random()
-                    else: reset_to_menu()
+                    if st.session_state.game_mode == "Random": 
+                        play_another_random()
+                    else: 
+                        reset_to_menu()
 
     # --- GUESS GRID ---
     if st.session_state.guesses:
