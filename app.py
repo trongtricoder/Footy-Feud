@@ -15,19 +15,23 @@ def get_manager():
 def get_user_id():
     cookie_manager = get_manager()
     
-    # 1. Try to get ID from the browser's cookies
-    uuid_cookie = cookie_manager.get("footyfeud_uid")
-    
-    # 2. Wait a split second if the cookie manager is still 'warming up'
-    if uuid_cookie is None:
-        time.sleep(0.2) 
+    # 1. Give the browser a moment to send cookies (Streamlit is fast!)
+    # We loop a few times to give the component time to "handshake"
+    retries = 5
+    uuid_cookie = None
+    while retries > 0 and uuid_cookie is None:
         uuid_cookie = cookie_manager.get("footyfeud_uid")
+        if uuid_cookie:
+            break
+        time.sleep(0.1) # Small pause
+        retries -= 1
 
     if uuid_cookie:
         st.session_state.user_id = uuid_cookie
     else:
-        # 3. If no cookie exists, create a new one
+        # 2. ONLY if we checked 5 times and found nothing, we make a new one
         new_id = str(uuid.uuid4())[:8]
+        # We use a key that Streamlit won't refresh easily
         cookie_manager.set("footyfeud_uid", new_id, expires_at=date(2030, 1, 1))
         st.session_state.user_id = new_id
         
@@ -114,18 +118,44 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. Wait for cookie check
+# 1. Improved Cookie Handshake
 if 'user_id' not in st.session_state:
     with st.spinner("Authenticating..."):
-        # Give the cookie manager a moment to retrieve data from the browser
-        time.sleep(0.5) 
-        uid = get_user_id()
+        # We loop slightly to give the browser time to talk to the server
+        uid = None
+        for _ in range(10):  # Try for up to 1 second
+            uid = cookie_manager.get("footyfeud_uid")
+            if uid:
+                break
+            time.sleep(0.1)
+        
         if not uid:
-            st.stop() # Stop execution until the ID is generated/retrieved
+            # If still no cookie, it's a new user: generate and set it
+            import uuid
+            uid = str(uuid.uuid4())[:8]
+            cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
+        
+        st.session_state.user_id = uid
 
-# 2. Once we have a UID, load the stats
+# 2. Load stats and RESTORE game state
 if 'stats' not in st.session_state:
-    st.session_state.stats = load_stats()
+    data = load_stats()
+    st.session_state.stats = data
+    
+    # AUTO-RESTORE LOGIC: 
+    # If the user has guesses saved for today, put them back in the game automatically
+    if data.get('daily', {}).get('last_played_date') == str(date.today()):
+        # Only restore if they haven't manually switched to Random mode
+        if 'game_mode' not in st.session_state or st.session_state.game_mode is None:
+            st.session_state.game_mode = "Daily"
+            st.session_state.guesses = data.get('current_guesses', [])
+            
+            # Check if they had already won/lost to set the game_over flag
+            if len(st.session_state.guesses) >= 6 or (
+                len(st.session_state.guesses) > 0 and 
+                st.session_state.guesses[-1]['name'] == data.get('secret_name_for_day')
+            ):
+                st.session_state.game_over = True
 
 # 3. Rest of your existing flags
 if 'has_seen_help' not in st.session_state:
