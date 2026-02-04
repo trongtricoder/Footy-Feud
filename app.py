@@ -118,7 +118,7 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. ID Handshake (The part we fixed)
+# 1. ID Handshake
 if 'user_id' not in st.session_state:
     with st.spinner("Authenticating..."):
         uid = None
@@ -134,34 +134,36 @@ if 'user_id' not in st.session_state:
         st.session_state.user_id = uid
         st.rerun()
 
-# 2. Load stats and FORCE RESTORE session state
+# 2. Load stats and Restore
 if 'stats' not in st.session_state:
     data = load_stats()
     st.session_state.stats = data
     
-    # --- THIS PART RESTORES YOUR MID-GAME PROGRESS ---
-    # Check if the user has guesses for today in the database
-    daily_data = data.get('daily', {})
     today_str = str(date.today())
     
-    if daily_data.get('last_played_date') == today_str or 'current_guesses' in data:
-        # If there are guesses and they belong to a Daily game today
-        if data.get('last_mode') == "Daily":
-            st.session_state.game_mode = "Daily"
-            st.session_state.guesses = data.get('current_guesses', [])
-            st.session_state.has_seen_help = True # Skip the welcome screen
-            
-            # Check if the game was already over
-            secret_name = data.get('secret_name_for_day')
-            if len(st.session_state.guesses) >= 6 or (
-                len(st.session_state.guesses) > 0 and 
-                st.session_state.guesses[-1]['name'] == secret_name
-            ):
-                st.session_state.game_over = True
-            else:
-                st.session_state.game_over = False
+    # Check if we should restore an active session
+    # We restore if it's the Daily mode and the date matches
+    if data.get('last_mode') == "Daily" and data.get('daily', {}).get('last_played_date') == today_str:
+        st.session_state.game_mode = "Daily"
+        st.session_state.guesses = data.get('current_guesses', [])
+        st.session_state.has_seen_help = True
+        
+        # Determine if game was already over
+        secret_name = data.get('secret_name_for_day')
+        if len(st.session_state.guesses) >= 6 or (
+            len(st.session_state.guesses) > 0 and 
+            st.session_state.guesses[-1]['name'] == secret_name
+        ):
+            st.session_state.game_over = True
+        else:
+            st.session_state.game_over = False
 
-# 3. Default Flags (Only set if not already restored above)
+# 3. GLOBAL SAFETY FALLBACKS 
+# This prevents the AttributeError in your screenshot
+if 'guesses' not in st.session_state:
+    st.session_state.guesses = []
+if 'game_over' not in st.session_state:
+    st.session_state.game_over = False
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
 if 'game_mode' not in st.session_state:
@@ -253,33 +255,43 @@ def handle_guess():
     selected = st.session_state.player_selector
     if selected and not st.session_state.game_over:
         guessed_player = next(p for p in st.session_state.all_players if p["name"] == selected)
+        
+        # Prevent duplicate guesses
         if guessed_player['name'] not in [g['name'] for g in st.session_state.guesses]:
             guessed_player['is_new'] = True
             st.session_state.guesses.append(guessed_player)
             
             mode = st.session_state.game_mode.lower()
-            
-            # WIN
+
+            # --- DAILY SESSION TRACKING ---
+            # Update the date as soon as the first guess is made
+            if mode == "daily":
+                st.session_state.stats[mode]["last_played_date"] = str(date.today())
+
+            # --- WIN CONDITION ---
             if guessed_player['name'] == st.session_state.secret_player['name']:
                 st.session_state.game_over = True
                 st.session_state.stats[mode]["played"] += 1
                 st.session_state.stats[mode]["won"] += 1
                 st.session_state.stats[mode]["current_streak"] += 1
                 st.session_state.stats[mode]["distribution"][len(st.session_state.guesses)] += 1
+                
                 if mode == "daily":
-                    st.session_state.stats[mode]["last_played_date"] = str(date.today())
                     if st.session_state.stats[mode]["current_streak"] > st.session_state.stats[mode]["max_streak"]:
                         st.session_state.stats[mode]["max_streak"] = st.session_state.stats[mode]["current_streak"]
-                save_stats()
-            # LOSS
+            
+            # --- LOSS CONDITION ---
             elif len(st.session_state.guesses) >= 6:
                 st.session_state.game_over = True
                 st.session_state.stats[mode]["played"] += 1
                 st.session_state.stats[mode]["current_streak"] = 0
-                if mode == "daily":
-                    st.session_state.stats[mode]["last_played_date"] = str(date.today())
-                save_stats()
-        st.session_state.player_selector = ""
+
+            # --- PERSISTENCE: Save on EVERY guess ---
+            # This ensures mid-game progress is saved to Firebase immediately
+            save_stats()
+            
+    # Reset the search box
+    st.session_state.player_selector = ""
 
 # --- 4. UI LAYOUT ---
 if "last_checked_date" not in st.session_state:
