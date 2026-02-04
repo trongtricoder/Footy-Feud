@@ -118,37 +118,41 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. ID Handshake
+# 1. ROBUST ID HANDSHAKE
 if 'user_id' not in st.session_state:
-    with st.spinner("Authenticating..."):
-        uid = None
-        for _ in range(15): 
-            uid = cookie_manager.get("footyfeud_uid")
-            if uid: break
-            time.sleep(0.1)
-        
-        if not uid:
-            uid = str(uuid.uuid4())[:8]
-            cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
-        
-        st.session_state.user_id = uid
-        st.rerun()
+    uid = None
+    # Retry loop: CookieManager is a JS component and needs time to "talk" to Python
+    for _ in range(20): 
+        uid = cookie_manager.get("footyfeud_uid")
+        if uid: break
+        time.sleep(0.1) 
+    
+    if not uid:
+        # If still no cookie, create it
+        uid = str(uuid.uuid4())[:8]
+        cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
+    
+    st.session_state.user_id = uid
+    st.rerun()
 
-# 2. Load stats and Restore
+# 2. DATA LOADING & STATE PROTECTION
 if 'stats' not in st.session_state:
     data = load_stats()
     st.session_state.stats = data
     
     today_str = str(date.today())
     
-    # Check if we should restore an active session
-    # We restore if it's the Daily mode and the date matches
-    if data.get('last_mode') == "Daily" and data.get('daily', {}).get('last_played_date') == today_str:
+    # Check if we should restore today's progress
+    is_daily = (data.get('last_mode') == "Daily")
+    is_today = (data.get('daily', {}).get('last_played_date') == today_str)
+
+    if is_daily and is_today:
+        # Restore active game
         st.session_state.game_mode = "Daily"
         st.session_state.guesses = data.get('current_guesses', [])
         st.session_state.has_seen_help = True
         
-        # Determine if game was already over
+        # Determine if it's ACTUALLY over
         secret_name = data.get('secret_name_for_day')
         if len(st.session_state.guesses) >= 6 or (
             len(st.session_state.guesses) > 0 and 
@@ -157,6 +161,17 @@ if 'stats' not in st.session_state:
             st.session_state.game_over = True
         else:
             st.session_state.game_over = False
+    else:
+        # HARD RESET for a new day or new session
+        st.session_state.guesses = []
+        st.session_state.game_over = False
+        st.session_state.game_mode = None
+
+# 3. GLOBAL FALLBACKS (To prevent AttributeErrors)
+if 'guesses' not in st.session_state:
+    st.session_state.guesses = []
+if 'game_over' not in st.session_state:
+    st.session_state.game_over = False
 
 # 3. GLOBAL SAFETY FALLBACKS 
 # This prevents the AttributeError in your screenshot
