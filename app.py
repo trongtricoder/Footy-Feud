@@ -118,53 +118,50 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. Aggressive Cookie Handshake
+# 1. ID Handshake (The part we fixed)
 if 'user_id' not in st.session_state:
-    # IMPORTANT: We use a placeholder to tell the app "We are waiting, don't make a new ID yet"
-    uid = None
-    
-    # Increase wait time and retries for slower connections
-    with st.spinner("Connecting to your profile..."):
-        for i in range(15):  # Try for 1.5 seconds
+    with st.spinner("Authenticating..."):
+        uid = None
+        for _ in range(15): 
             uid = cookie_manager.get("footyfeud_uid")
-            if uid:
-                break
+            if uid: break
             time.sleep(0.1)
         
-        # ONLY if after 1.5s we definitely have no cookie, we create a new one
         if not uid:
-            # Check one last time to be absolutely sure
-            uid = cookie_manager.get("footyfeud_uid")
-            if not uid:
-                import uuid
-                uid = str(uuid.uuid4())[:8]
-                # Set the cookie with a long expiry
-                cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
+            uid = str(uuid.uuid4())[:8]
+            cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
         
         st.session_state.user_id = uid
-        # Force a small rerun here to ensure the ID is locked into state before stats load
         st.rerun()
 
-# 2. Once ID is locked, load stats and RESTORE game state
-if 'user_id' in st.session_state and 'stats' not in st.session_state:
+# 2. Load stats and FORCE RESTORE session state
+if 'stats' not in st.session_state:
     data = load_stats()
     st.session_state.stats = data
     
-    # Restore Progress
-    if data.get('daily', {}).get('last_played_date') == str(date.today()):
-        if st.session_state.get('game_mode') is None:
+    # --- THIS PART RESTORES YOUR MID-GAME PROGRESS ---
+    # Check if the user has guesses for today in the database
+    daily_data = data.get('daily', {})
+    today_str = str(date.today())
+    
+    if daily_data.get('last_played_date') == today_str or 'current_guesses' in data:
+        # If there are guesses and they belong to a Daily game today
+        if data.get('last_mode') == "Daily":
             st.session_state.game_mode = "Daily"
             st.session_state.guesses = data.get('current_guesses', [])
+            st.session_state.has_seen_help = True # Skip the welcome screen
             
-            # Re-check win/loss state
+            # Check if the game was already over
             secret_name = data.get('secret_name_for_day')
             if len(st.session_state.guesses) >= 6 or (
                 len(st.session_state.guesses) > 0 and 
                 st.session_state.guesses[-1]['name'] == secret_name
             ):
                 st.session_state.game_over = True
+            else:
+                st.session_state.game_over = False
 
-# 3. Flags
+# 3. Default Flags (Only set if not already restored above)
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
 if 'game_mode' not in st.session_state:
