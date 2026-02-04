@@ -59,41 +59,21 @@ def init_db():
             st.session_state.db = None
 
 def load_stats():
-    user_id = st.session_state.user_id
+    user_id = st.session_state.get('user_id')
+    if not user_id:
+        return None # Don't return defaults yet!
+    
     if st.session_state.db:
         doc = st.session_state.db.collection("users").document(user_id).get()
         if doc.exists:
             data = doc.to_dict()
-            
-            # 1. Restore the distribution stats (ints as keys)
-            for mode in ['daily', 'random']:
-                if mode in data:
-                    data[mode]['distribution'] = {int(k): v for k, v in data[mode].get('distribution', {}).items()}
-            
-            # 2. Restore Guesses (if they exist for the current daily game)
-            # We only restore guesses if the date matches today
-            if data.get('daily', {}).get('last_played_date') == str(date.today()):
-                st.session_state.guesses = data.get('current_guesses', [])
-                # If they already finished, ensure game_over is set
-                if len(st.session_state.guesses) >= 6 or (
-                    len(st.session_state.guesses) > 0 and 
-                    st.session_state.guesses[-1]['name'] == data.get('secret_name_for_day')
-                ):
-                    st.session_state.game_over = True
-            
+            # ... (keep your existing formatting logic here) ...
             return data
             
-    # Default Stats Structure if no user found
+    # ONLY return defaults if we are SURE the user_id exists but has no doc
     return {
-        "daily": {
-            "played": 0, "won": 0, "current_streak": 0, "max_streak": 0,
-            "distribution": {i: 0 for i in range(1, 7)},
-            "last_played_date": None
-        },
-        "random": {
-            "played": 0, "won": 0, "current_streak": 0,
-            "distribution": {i: 0 for i in range(1, 7)}
-        }
+        "daily": {"played": 0, "won": 0, "current_streak": 0, "max_streak": 0, "distribution": {i: 0 for i in range(1, 7)}, "last_played_date": None},
+        "random": {"played": 0, "won": 0, "current_streak": 0, "distribution": {i: 0 for i in range(1, 7)}}
     }
 
 def save_stats():
@@ -118,54 +98,27 @@ def save_stats():
 init_db()
 cookie_manager = get_manager()
 
-# 1. ROBUST ID HANDSHAKE
 if 'user_id' not in st.session_state:
-    uid = None
-    # Retry loop: CookieManager is a JS component and needs time to "talk" to Python
-    for _ in range(20): 
-        uid = cookie_manager.get("footyfeud_uid")
-        if uid: break
-        time.sleep(0.1) 
+    # Use a placeholder to stop the rest of the script from running
+    st.info("🔄 Connecting to server...")
+    uid = cookie_manager.get("footyfeud_uid")
     
-    if not uid:
-        # If still no cookie, create it
-        uid = str(uuid.uuid4())[:8]
-        cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
-    
-    st.session_state.user_id = uid
-    st.rerun()
-
-# 2. DATA LOADING & STATE PROTECTION
-if 'stats' not in st.session_state:
-    data = load_stats()
-    st.session_state.stats = data
-    
-    today_str = str(date.today())
-    
-    # Check if we should restore today's progress
-    is_daily = (data.get('last_mode') == "Daily")
-    is_today = (data.get('daily', {}).get('last_played_date') == today_str)
-
-    if is_daily and is_today:
-        # Restore active game
-        st.session_state.game_mode = "Daily"
-        st.session_state.guesses = data.get('current_guesses', [])
-        st.session_state.has_seen_help = True
-        
-        # Determine if it's ACTUALLY over
-        secret_name = data.get('secret_name_for_day')
-        if len(st.session_state.guesses) >= 6 or (
-            len(st.session_state.guesses) > 0 and 
-            st.session_state.guesses[-1]['name'] == secret_name
-        ):
-            st.session_state.game_over = True
-        else:
-            st.session_state.game_over = False
+    if uid:
+        st.session_state.user_id = uid
+        st.rerun()
     else:
-        # HARD RESET for a new day or new session
-        st.session_state.guesses = []
-        st.session_state.game_over = False
-        st.session_state.game_mode = None
+        # Give it a few attempts before giving up and making a new one
+        time.sleep(0.5) 
+        uid = cookie_manager.get("footyfeud_uid")
+        if not uid:
+            uid = str(uuid.uuid4())[:8]
+            cookie_manager.set("footyfeud_uid", uid, expires_at=date(2030, 1, 1))
+            st.session_state.user_id = uid
+            st.rerun()
+
+# 3. Only load stats once User ID is confirmed
+if 'stats' not in st.session_state and 'user_id' in st.session_state:
+    st.session_state.stats = load_stats()
 
 # 3. GLOBAL FALLBACKS (To prevent AttributeErrors)
 if 'guesses' not in st.session_state:
@@ -312,25 +265,28 @@ def handle_guess():
 if "last_checked_date" not in st.session_state:
     st.session_state.last_checked_date = date.today()
 
+# Handle Midnight Reset
 if st.session_state.last_checked_date != date.today():
     st.session_state.last_checked_date = date.today()
-    # Force a reset of the daily game state for the new day
     if st.session_state.get('game_mode') == "Daily":
         for key in ['secret_player', 'guesses', 'game_over']:
             if key in st.session_state: del st.session_state[key]
     st.rerun()
 
+# Header
 h_col1, h_col2 = st.columns([0.85, 0.15])
 with h_col1: st.title("⚽ FootyFeud")
 with h_col2: 
     if st.button("❓"): help_modal()
 
+# 1. Welcome Screen
 if not st.session_state.has_seen_help:
     st.subheader("Welcome to FootyFeud! 🏆")
     if st.button("Let's Play!", use_container_width=True):
         st.session_state.has_seen_help = True
         st.rerun()
 
+# 2. Mode Selection
 elif st.session_state.game_mode is None:
     st.subheader("Choose your challenge:")
     m_col1, m_col2 = st.columns(2)
@@ -343,47 +299,49 @@ elif st.session_state.game_mode is None:
             st.session_state.game_mode = "Random"
             st.rerun()
 
+# 3. Active Gameplay
 else:
-    # --- SAFETY CHECK: Initialize mode-specific data before rendering UI ---
     if 'all_players' not in st.session_state:
         st.session_state.all_players = load_players()
 
+    # Initialize Secret Player if missing
     if 'secret_player' not in st.session_state or st.session_state.secret_player is None:
         if st.session_state.game_mode == "Daily":
-            # --- SEEDING LOGIC: Same player for everyone today ---
             today_seed = int(date.today().strftime("%Y%m%d"))
             random.seed(today_seed)
             st.session_state.secret_player = random.choice(st.session_state.all_players)
-            random.seed() # Reset seed so Random Mode stays random
+            random.seed() 
         else:
-            # Logic for Random: Pick any player
             st.session_state.secret_player = get_random_player(st.session_state.all_players)
         
-        # Ensure guesses are ready
         if 'guesses' not in st.session_state:
             st.session_state.guesses = []
         if 'game_over' not in st.session_state:
             st.session_state.game_over = False
 
-    # --- GAMEPLAY ---
+    # Header Info
     st.caption(f"Mode: {st.session_state.game_mode} | Guess: {len(st.session_state.guesses)}/6")
     
-    # Calculate win state safely
     is_win = (len(st.session_state.guesses) > 0 and 
               st.session_state.guesses[-1]['name'] == st.session_state.secret_player['name'])
     
-    display_player_reveal(st.session_state.secret_player['img_url'], is_win)
+    display_player_reveal(st.session_state.secret_player['img_url'], is_win or st.session_state.game_over)
 
-    # LOCK CHECK FOR DAILY
-    if st.session_state.game_mode == "Daily" and st.session_state.stats["daily"]["last_played_date"] == str(date.today()):
+    # --- THE FIX: LOCKOUT LOGIC ---
+    # We only show the "See you tomorrow" message if the game is ACTUALLY over,
+    # not just because the date in the database is today.
+    if st.session_state.game_mode == "Daily" and st.session_state.game_over:
         st.info("Daily Challenge completed! See you tomorrow.")
         show_stats_dashboard()
         if st.button("🏠 Menu", use_container_width=True): reset_to_menu()
+    
     else:
-        # SEARCH INPUT
+        # Search / Input Area
         player_names = [""] + [p["name"] for p in st.session_state.all_players]
-        st.selectbox("Search player:", options=player_names, key="player_selector", on_change=handle_guess, disabled=st.session_state.game_over)
+        st.selectbox("Search player:", options=player_names, key="player_selector", 
+                     on_change=handle_guess, disabled=st.session_state.game_over)
 
+        # Post-Game Results (This shows immediately after the winning/losing guess)
         if st.session_state.game_over:
             if is_win:
                 st.balloons()
@@ -397,15 +355,14 @@ else:
             with e_col1:
                 if st.button("🏠 Menu", use_container_width=True): reset_to_menu()
             with e_col2:
-                if st.button("🔄 Next Round", use_container_width=True):
-                    if st.session_state.game_mode == "Random": 
+                if st.session_state.game_mode == "Random":
+                    if st.button("🔄 Next Round", use_container_width=True):
                         play_another_random()
-                    else: 
-                        reset_to_menu()
 
     # --- GUESS GRID ---
     if st.session_state.guesses:
         secret = st.session_state.secret_player
+        # Show Latest Guess first, then history
         for i, guess in enumerate(reversed(st.session_state.guesses)):
             if i == 0: st.write("### Latest Guess")
             elif i == 1: st.write("### History")
