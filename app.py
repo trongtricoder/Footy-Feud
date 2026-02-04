@@ -2,26 +2,34 @@ import streamlit as st
 import time
 import random
 import uuid
+import extra_streamlit_components as stx
 from datetime import date
 from src.utils import load_players, get_random_player
 
 # --- 1. FIREBASE & PERISTENCE CONFIG ---
-def get_user_id():
-    """Retrieves a unique ID from the URL or generates a new one."""
-    # 1. Check if it's already in session state
-    if "user_id" in st.session_state:
-        return st.session_state.user_id
+def get_manager():
+    if "cookie_manager" not in st.session_state:
+        st.session_state.cookie_manager = stx.CookieManager()
+    return st.session_state.cookie_manager
 
-    # 2. Check if it's in the URL (so it persists on refresh)
-    url_id = st.query_params.get("uid")
+def get_user_id():
+    cookie_manager = get_manager()
     
-    if url_id:
-        st.session_state.user_id = url_id
+    # 1. Try to get ID from the browser's cookies
+    uuid_cookie = cookie_manager.get("footyfeud_uid")
+    
+    # 2. Wait a split second if the cookie manager is still 'warming up'
+    if uuid_cookie is None:
+        time.sleep(0.2) 
+        uuid_cookie = cookie_manager.get("footyfeud_uid")
+
+    if uuid_cookie:
+        st.session_state.user_id = uuid_cookie
     else:
-        # 3. Create a brand new unique ID for this specific browser session
-        new_id = str(uuid.uuid4())[:8] # Short unique string
+        # 3. If no cookie exists, create a new one
+        new_id = str(uuid.uuid4())[:8]
+        cookie_manager.set("footyfeud_uid", new_id, expires_at=date(2030, 1, 1))
         st.session_state.user_id = new_id
-        st.query_params["uid"] = new_id
         
     return st.session_state.user_id
 
@@ -34,7 +42,6 @@ def init_db():
 
             if "firebase" in st.secrets:
                 raw_key = st.secrets["firebase"]["textkey"]
-                # Clean up the string in case of hidden characters
                 raw_key = raw_key.strip()
                 
                 key_dict = json.loads(raw_key)
@@ -48,17 +55,31 @@ def init_db():
             st.session_state.db = None
 
 def load_stats():
-    user_id = get_user_id()
+    user_id = st.session_state.user_id
     if st.session_state.db:
         doc = st.session_state.db.collection("users").document(user_id).get()
         if doc.exists:
             data = doc.to_dict()
-            # Convert string keys back to int for distribution
+            
+            # 1. Restore the distribution stats (ints as keys)
             for mode in ['daily', 'random']:
-                data[mode]['distribution'] = {int(k): v for k, v in data[mode]['distribution'].items()}
+                if mode in data:
+                    data[mode]['distribution'] = {int(k): v for k, v in data[mode].get('distribution', {}).items()}
+            
+            # 2. Restore Guesses (if they exist for the current daily game)
+            # We only restore guesses if the date matches today
+            if data.get('daily', {}).get('last_played_date') == str(date.today()):
+                st.session_state.guesses = data.get('current_guesses', [])
+                # If they already finished, ensure game_over is set
+                if len(st.session_state.guesses) >= 6 or (
+                    len(st.session_state.guesses) > 0 and 
+                    st.session_state.guesses[-1]['name'] == data.get('secret_name_for_day')
+                ):
+                    st.session_state.game_over = True
+            
             return data
             
-    # Default Stats Structure
+    # Default Stats Structure if no user found
     return {
         "daily": {
             "played": 0, "won": 0, "current_streak": 0, "max_streak": 0,
@@ -72,51 +93,45 @@ def load_stats():
     }
 
 def save_stats():
-    if st.session_state.db:
-        user_id = get_user_id()
-        # Firestore requires string keys for dictionaries
+    if st.session_state.db and "user_id" in st.session_state:
+        user_id = st.session_state.user_id
         save_data = {}
         for mode in ['daily', 'random']:
             save_data[mode] = st.session_state.stats[mode].copy()
+            # Convert keys to strings for Firestore
             save_data[mode]['distribution'] = {str(k): v for k, v in save_data[mode]['distribution'].items()}
+        
+        # ADD THIS: Save the current session's guesses so they persist!
+        # Add to the existing save_data block
+        save_data['current_guesses'] = st.session_state.guesses
+        if st.session_state.game_mode == "Daily":
+            save_data['secret_name_for_day'] = st.session_state.secret_player['name']
+        save_data['last_mode'] = st.session_state.game_mode
         
         st.session_state.db.collection("users").document(user_id).set(save_data)
 
 # --- 2. GAME INITIALIZATION ---
 init_db()
-current_uid = get_user_id() # Force ID generation/retrieval
+cookie_manager = get_manager()
 
-# Always load stats based on the active UID
-if 'stats' not in st.session_state or st.session_state.get('last_uid') != current_uid:
+# 1. Wait for cookie check
+if 'user_id' not in st.session_state:
+    with st.spinner("Authenticating..."):
+        # Give the cookie manager a moment to retrieve data from the browser
+        time.sleep(0.5) 
+        uid = get_user_id()
+        if not uid:
+            st.stop() # Stop execution until the ID is generated/retrieved
+
+# 2. Once we have a UID, load the stats
+if 'stats' not in st.session_state:
     st.session_state.stats = load_stats()
-    st.session_state.last_uid = current_uid
 
+# 3. Rest of your existing flags
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
-
 if 'game_mode' not in st.session_state:
     st.session_state.game_mode = None
-
-if st.session_state.game_mode and 'secret_player' not in st.session_state:
-    players = load_players()
-    st.session_state.all_players = players
-    
-    if st.session_state.game_mode == "Daily":
-        random.seed(date.today().toordinal())
-        st.session_state.secret_player = get_random_player(players)
-        random.seed() 
-        # Check if already played today
-        if st.session_state.stats["daily"]["last_played_date"] == str(date.today()):
-            st.session_state.game_over = True
-            # In a real app, you'd store/load the guesses for the day here too
-            st.session_state.guesses = [] 
-        else:
-            st.session_state.guesses = []
-            st.session_state.game_over = False
-    else:
-        st.session_state.secret_player = get_random_player(players)
-        st.session_state.guesses = []
-        st.session_state.game_over = False
 
 # --- 3. HELPER FUNCTIONS ---
 
