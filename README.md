@@ -109,5 +109,3 @@ The app expects a `players.json` in the following format:
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-
-**Would you like me to help you write a script to scrape or generate more player data for your `players.json` file?**
