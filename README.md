@@ -6,14 +6,13 @@
 
 * **Daily Challenge**: A synchronized global mystery player that resets every 24 hours.
 * **Random Mode**: Practice your skills with unlimited random players.
-* **Dynamic Silhouette**: The player's image starts as a dark silhouette and clears by 10% with every incorrect guess.
 * **Smart Feedback**:
 * 🟩 **Green**: Exact match for Nationality, League, Club, or Position.
 * 🟨 **Yellow**: Age is within 2 years of the target.
 * ↑/↓ **Arrows**: Indicates if the mystery player is older or younger.
 
 
-* **Persistence**: Uses Firebase Firestore and Browser Cookies to save your stats, streaks, and current game progress even if you refresh the page.
+* **Persistence**: Uses Firebase Firestore to save your stats, streaks.
 
 ---
 
@@ -21,7 +20,6 @@
 
 * **Frontend**: [Streamlit](https://streamlit.io/)
 * **Database**: [Google Firebase Firestore](https://firebase.google.com/)
-* **State Management**: Cookies (via `extra-streamlit-components`)
 * **Language**: Python 3.9+
 
 ---
@@ -34,6 +32,7 @@ footyfeud/
 ├── requirements.txt    # Python dependencies
 ├── src/
 │   └── utils.py        # Data loading and helper functions
+│   └── auth.py        # Authentication
 ├── data/
 │   └── players.json    # Footballer database
 └── .streamlit/
