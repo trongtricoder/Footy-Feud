@@ -1,31 +1,13 @@
 import streamlit as st
 import time
 import random
-import uuid
 from datetime import date
 from src.utils import load_players, get_random_player
+from src.auth_streamlit import AuthManager
 
-# --- 1. FIREBASE & PERISTENCE CONFIG ---
-def get_user_id():
-    """Retrieves a unique ID from the URL or generates a new one."""
-    # 1. Check if it's already in session state
-    if "user_id" in st.session_state:
-        return st.session_state.user_id
-
-    # 2. Check if it's in the URL (so it persists on refresh)
-    url_id = st.query_params.get("uid")
-    
-    if url_id:
-        st.session_state.user_id = url_id
-    else:
-        # 3. Create a brand new unique ID for this specific browser session
-        new_id = str(uuid.uuid4())[:8] # Short unique string
-        st.session_state.user_id = new_id
-        st.query_params["uid"] = new_id
-        
-    return st.session_state.user_id
-
+# --- 1. FIREBASE & AUTHENTICATION CONFIG ---
 def init_db():
+    """Initialize Firestore connection"""
     if "db" not in st.session_state:
         try:
             from google.cloud import firestore
@@ -34,31 +16,44 @@ def init_db():
 
             if "firebase" in st.secrets:
                 raw_key = st.secrets["firebase"]["textkey"]
-                # Clean up the string in case of hidden characters
                 raw_key = raw_key.strip()
                 
                 key_dict = json.loads(raw_key)
                 creds = service_account.Credentials.from_service_account_info(key_dict)
                 st.session_state.db = firestore.Client(credentials=creds)
+                st.session_state.auth_manager = AuthManager(st.session_state.db)
             else:
                 print("Error: [firebase] section not found in secrets!")
                 st.session_state.db = None
+                st.session_state.auth_manager = None
         except Exception as e:
             print(f"🔥 Firebase Connection Failed: {e}")
             st.session_state.db = None
+            st.session_state.auth_manager = None
 
-def load_stats():
-    user_id = get_user_id()
-    if st.session_state.db:
-        doc = st.session_state.db.collection("users").document(user_id).get()
-        if doc.exists:
-            data = doc.to_dict()
-            # Convert string keys back to int for distribution
+def load_user_stats(user_id):
+    """Load stats for authenticated user"""
+    if st.session_state.db and st.session_state.auth_manager:
+        user_data = st.session_state.auth_manager.get_user_by_id(user_id)
+        if user_data:
+            # Extract just the stats portion
+            stats = {
+                'daily': user_data.get('daily', {
+                    "played": 0, "won": 0, "current_streak": 0, "max_streak": 0,
+                    "distribution": {str(i): 0 for i in range(1, 7)},
+                    "last_played_date": None
+                }),
+                'random': user_data.get('random', {
+                    "played": 0, "won": 0, "current_streak": 0,
+                    "distribution": {str(i): 0 for i in range(1, 7)}
+                })
+            }
+            # Convert distribution keys to int
             for mode in ['daily', 'random']:
-                data[mode]['distribution'] = {int(k): v for k, v in data[mode]['distribution'].items()}
-            return data
-            
-    # Default Stats Structure
+                stats[mode]['distribution'] = {int(k): v for k, v in stats[mode]['distribution'].items()}
+            return stats
+    
+    # Default stats if DB unavailable
     return {
         "daily": {
             "played": 0, "won": 0, "current_streak": 0, "max_streak": 0,
@@ -72,24 +67,102 @@ def load_stats():
     }
 
 def save_stats():
-    if st.session_state.db:
-        user_id = get_user_id()
-        # Firestore requires string keys for dictionaries
-        save_data = {}
+    """Save stats for authenticated user"""
+    if st.session_state.db and st.session_state.auth_manager and 'user_id' in st.session_state:
         for mode in ['daily', 'random']:
-            save_data[mode] = st.session_state.stats[mode].copy()
-            save_data[mode]['distribution'] = {str(k): v for k, v in save_data[mode]['distribution'].items()}
-        
-        st.session_state.db.collection("users").document(user_id).set(save_data)
+            mode_data = st.session_state.stats[mode].copy()
+            # Convert int keys to strings for Firestore
+            mode_data['distribution'] = {str(k): v for k, v in mode_data['distribution'].items()}
+            st.session_state.auth_manager.update_user_stats(
+                st.session_state.user_id,
+                mode,
+                mode_data
+            )
 
-# --- 2. GAME INITIALIZATION ---
+# --- 2. AUTHENTICATION UI ---
+def show_login_page():
+    """Display login/signup page"""
+    st.title("⚽ FootyFeud")
+    st.markdown("### Welcome! Please login or create an account")
+    
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    
+    with tab1:
+        st.markdown("#### Login to your account")
+        with st.form("login_form"):
+            username = st.text_input("Username", key="login_username")
+            password = st.text_input("Password", type="password", key="login_password")
+            submit = st.form_submit_button("Login", use_container_width=True)
+            
+            if submit:
+                if not username or not password:
+                    st.error("Please enter both username and password")
+                else:
+                    success, message, user_data = st.session_state.auth_manager.authenticate_user(
+                        username, password
+                    )
+                    
+                    if success:
+                        st.session_state.authenticated = True
+                        st.session_state.user_id = user_data['user_id']
+                        st.session_state.username = user_data['username']
+                        st.session_state.stats = load_user_stats(user_data['user_id'])
+                        st.success(message)
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error(message)
+    
+    with tab2:
+        st.markdown("#### Create a new account")
+        with st.form("signup_form"):
+            new_username = st.text_input("Username", key="signup_username")
+            st.caption("3-20 characters, letters, numbers, _ and - only")
+            new_password = st.text_input("Password", type="password", key="signup_password")
+            st.caption("Minimum 6 characters")
+            confirm_password = st.text_input("Confirm Password", type="password", key="confirm_password")
+            submit = st.form_submit_button("Create Account", use_container_width=True)
+            
+            if submit:
+                if not new_username or not new_password:
+                    st.error("Please fill in all fields")
+                elif new_password != confirm_password:
+                    st.error("Passwords do not match")
+                else:
+                    success, message, user_id = st.session_state.auth_manager.create_user(
+                        new_username, new_password
+                    )
+                    
+                    if success:
+                        st.session_state.authenticated = True
+                        st.session_state.user_id = user_id
+                        st.session_state.username = new_username
+                        st.session_state.stats = load_user_stats(user_id)
+                        st.success(message)
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error(message)
+
+# --- 3. GAME INITIALIZATION ---
 init_db()
-current_uid = get_user_id() # Force ID generation/retrieval
 
-# Always load stats based on the active UID
-if 'stats' not in st.session_state or st.session_state.get('last_uid') != current_uid:
-    st.session_state.stats = load_stats()
-    st.session_state.last_uid = current_uid
+# Check authentication
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+# If not authenticated and DB is available, show login
+if not st.session_state.authenticated:
+    if st.session_state.db and st.session_state.auth_manager:
+        show_login_page()
+        st.stop()
+    else:
+        st.error("Database connection failed. Please contact support.")
+        st.stop()
+
+# Load user stats if not loaded
+if 'stats' not in st.session_state:
+    st.session_state.stats = load_user_stats(st.session_state.user_id)
 
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
@@ -108,7 +181,6 @@ if st.session_state.game_mode and 'secret_player' not in st.session_state:
         # Check if already played today
         if st.session_state.stats["daily"]["last_played_date"] == str(date.today()):
             st.session_state.game_over = True
-            # In a real app, you'd store/load the guesses for the day here too
             st.session_state.guesses = [] 
         else:
             st.session_state.guesses = []
@@ -118,7 +190,7 @@ if st.session_state.game_mode and 'secret_player' not in st.session_state:
         st.session_state.guesses = []
         st.session_state.game_over = False
 
-# --- 3. HELPER FUNCTIONS ---
+# --- 4. HELPER FUNCTIONS ---
 
 def show_stats_dashboard():
     st.markdown("---")
@@ -189,6 +261,12 @@ def help_modal():
     st.write("- **Green (🟩)**: Exact match.\n- **Yellow (🟨)**: Age within 2 years.\n- **Arrows**: Mystery player is older (↑) or younger (↓).")
     if st.button("Close"): st.rerun()
 
+def logout():
+    """Logout user"""
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
+
 def reset_to_menu():
     for key in ['secret_player', 'guesses', 'game_over', 'game_mode']:
         if key in st.session_state: del st.session_state[key]
@@ -232,11 +310,24 @@ def handle_guess():
                 save_stats()
         st.session_state.player_selector = ""
 
-# --- 4. UI LAYOUT ---
-h_col1, h_col2 = st.columns([0.85, 0.15])
-with h_col1: st.title("⚽ FootyFeud")
-with h_col2: 
-    if st.button("❓"): help_modal()
+# --- 5. UI LAYOUT ---
+# Header with username and logout
+col1, col2, col3 = st.columns([0.6, 0.3, 0.1], vertical_alignment="bottom")
+with col1: 
+    st.title("⚽ FootyFeud")
+with col2:
+    if st.session_state.get('authenticated'):
+        st.caption(f"👤 {st.session_state.get('username', '')}")
+with col3: 
+    if st.button("❓"): 
+        help_modal()
+
+# Logout button in sidebar
+with st.sidebar:
+    st.markdown("### Account")
+    st.write(f"**{st.session_state.get('username', '')}**")
+    if st.button("🚪 Logout", use_container_width=True):
+        logout()
 
 if not st.session_state.has_seen_help:
     st.subheader("Welcome to FootyFeud! 🏆")

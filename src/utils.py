@@ -3,12 +3,11 @@ import random
 import os
 
 def load_players():
-    """Loads the athlete data from the JSON file."""
-    # This helps find the file regardless of where you run the script from
+    """Loads the athlete data from the JSON file with UTF-8 support."""
     base_path = os.path.dirname(__file__)
     file_path = os.path.join(base_path, '../data/players.json')
     
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def get_random_player(player_list):

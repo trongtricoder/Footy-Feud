@@ -1,32 +1,902 @@
 [
-  {"name": "Lionel Messi", "nationality": "Argentina", "league": "MLS", "club": "Inter Miami", "position": "FWD", "age": 38, "img_url": ""},
-  {"name": "Cristiano Ronaldo", "nationality": "Portugal", "league": "Saudi Pro League", "club": "Al Nassr", "position": "FWD", "age": 41, "img_url": ""},
-  {"name": "Erling Haaland", "nationality": "Norway", "league": "EPL", "club": "Man City", "position": "FWD", "age": 25, "img_url": ""},
-  {"name": "Kylian Mbappe", "nationality": "France", "league": "La Liga", "club": "Real Madrid", "position": "FWD", "age": 27, "img_url": ""},
-  {"name": "Mohammed Salah", "nationality": "Egypt", "league": "EPL", "club": "Liverpool", "position": "FWD", "age": 33, "img_url": ""},
-  {"name": "Kevin De Bruyne", "nationality": "Belgium", "league": "EPL", "club": "Man City", "position": "MID", "age": 34, "img_url": ""},
-  {"name": "Vinicius Junior", "nationality": "Brazil", "league": "La Liga", "club": "Real Madrid", "position": "FWD", "age": 25, "img_url": ""},
-  {"name": "Jude Bellingham", "nationality": "England", "league": "La Liga", "club": "Real Madrid", "position": "MID", "age": 22, "img_url": ""},
-  {"name": "Harry Kane", "nationality": "England", "league": "Bundesliga", "club": "Bayern Munich", "position": "FWD", "age": 32, "img_url": ""},
-  {"name": "Bukayo Saka", "nationality": "England", "league": "EPL", "club": "Arsenal", "position": "FWD", "age": 24, "img_url": ""},
-  {"name": "Lamine Yamal", "nationality": "Spain", "league": "La Liga", "club": "Barcelona", "position": "FWD", "age": 18, "img_url": ""},
-  {"name": "Rodri", "nationality": "Spain", "league": "EPL", "club": "Man City", "position": "MID", "age": 29, "img_url": ""},
-  {"name": "Virgil van Dijk", "nationality": "Netherlands", "league": "EPL", "club": "Liverpool", "position": "DEF", "age": 34, "img_url": ""},
-  {"name": "Alisson Becker", "nationality": "Brazil", "league": "EPL", "club": "Liverpool", "position": "GK", "age": 33, "img_url": ""},
-  {"name": "Bruno Fernandes", "nationality": "Portugal", "league": "EPL", "club": "Man Utd", "position": "MID", "age": 31, "img_url": ""},
-  {"name": "Cole Palmer", "nationality": "England", "league": "EPL", "club": "Chelsea", "position": "MID", "age": 23, "img_url": ""},
-  {"name": "Martin Odegaard", "nationality": "Norway", "league": "EPL", "club": "Arsenal", "position": "MID", "age": 27, "img_url": ""},
-  {"name": "Lautaro Martinez", "nationality": "Argentina", "league": "Serie A", "club": "Inter Milan", "position": "FWD", "age": 28, "img_url": ""},
-  {"name": "Antoine Griezmann", "nationality": "France", "league": "La Liga", "club": "Atletico Madrid", "position": "FWD", "age": 34, "img_url": ""},
-  {"name": "Robert Lewandowski", "nationality": "Poland", "league": "La Liga", "club": "Barcelona", "position": "FWD", "age": 37, "img_url": ""},
-  {"name": "Son Heung-min", "nationality": "South Korea", "league": "EPL", "club": "Tottenham", "position": "FWD", "age": 33, "img_url": ""},
-  {"name": "William Saliba", "nationality": "France", "league": "EPL", "club": "Arsenal", "position": "DEF", "age": 24, "img_url": ""},
-  {"name": "Florian Wirtz", "nationality": "Germany", "league": "EPL", "club": "Liverpool", "position": "MID", "age": 22, "img_url": ""},
-  {"name": "Jamal Musiala", "nationality": "Germany", "league": "Bundesliga", "club": "Bayern Munich", "position": "MID", "age": 22, "img_url": ""},
-  {"name": "Declan Rice", "nationality": "England", "league": "EPL", "club": "Arsenal", "position": "MID", "age": 27, "img_url": ""},
-  {"name": "Thibaut Courtois", "nationality": "Belgium", "league": "La Liga", "club": "Real Madrid", "position": "GK", "age": 33, "img_url": ""},
-  {"name": "Federico Valverde", "nationality": "Uruguay", "league": "La Liga", "club": "Real Madrid", "position": "MID", "age": 27, "img_url": ""},
-  {"name": "Rafael Leao", "nationality": "Portugal", "league": "Serie A", "club": "AC Milan", "position": "FWD", "age": 26, "img_url": ""},
-  {"name": "Neymar Jr", "nationality": "Brazil", "league": "Saudi Pro League", "club": "Al Hilal", "position": "FWD", "age": 34, "img_url": ""},
-  {"name": "Alphonso Davies", "nationality": "Canada", "league": "La Liga", "club": "Real Madrid", "position": "DEF", "age": 25, "img_url": ""}
+  {
+    "name": "Erling Haaland",
+    "nationality": "Norway",
+    "league": "EPL",
+    "club": "Manchester City",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "haaland.jpg"
+  },
+  {
+    "name": "Kylian Mbappé",
+    "nationality": "France",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Forward",
+    "age": 27,
+    "img_url": "mbappe.jpg"
+  },
+  {
+    "name": "Jude Bellingham",
+    "nationality": "England",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Midfielder",
+    "age": 22,
+    "img_url": "bellingham.jpg"
+  },
+  {
+    "name": "Vinícius Júnior",
+    "nationality": "Brazil",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "vinicius.jpg"
+  },
+  {
+    "name": "Harry Kane",
+    "nationality": "England",
+    "league": "Bundesliga",
+    "club": "Bayern Munich",
+    "position": "Forward",
+    "age": 32,
+    "img_url": "kane.jpg"
+  },
+  {
+    "name": "Kevin De Bruyne",
+    "nationality": "Belgium",
+    "league": "EPL",
+    "club": "Manchester City",
+    "position": "Midfielder",
+    "age": 34,
+    "img_url": "debruyne.jpg"
+  },
+  {
+    "name": "Rodri",
+    "nationality": "Spain",
+    "league": "EPL",
+    "club": "Manchester City",
+    "position": "Midfielder",
+    "age": 29,
+    "img_url": "rodri.jpg"
+  },
+  {
+    "name": "Phil Foden",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Manchester City",
+    "position": "Midfielder",
+    "age": 25,
+    "img_url": "foden.jpg"
+  },
+  {
+    "name": "Mohamed Salah",
+    "nationality": "Egypt",
+    "league": "EPL",
+    "club": "Liverpool",
+    "position": "Forward",
+    "age": 33,
+    "img_url": "salah.jpg"
+  },
+  {
+    "name": "Virgil van Dijk",
+    "nationality": "Netherlands",
+    "league": "EPL",
+    "club": "Liverpool",
+    "position": "Defender",
+    "age": 34,
+    "img_url": "vandijk.jpg"
+  },
+  {
+    "name": "Trent Alexander-Arnold",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Liverpool",
+    "position": "Defender",
+    "age": 27,
+    "img_url": "taa.jpg"
+  },
+  {
+    "name": "Bukayo Saka",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Arsenal",
+    "position": "Forward",
+    "age": 24,
+    "img_url": "saka.jpg"
+  },
+  {
+    "name": "Martin Ødegaard",
+    "nationality": "Norway",
+    "league": "EPL",
+    "club": "Arsenal",
+    "position": "Midfielder",
+    "age": 27,
+    "img_url": "odegaard.jpg"
+  },
+  {
+    "name": "William Saliba",
+    "nationality": "France",
+    "league": "EPL",
+    "club": "Arsenal",
+    "position": "Defender",
+    "age": 24,
+    "img_url": "saliba.jpg"
+  },
+  {
+    "name": "Declan Rice",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Arsenal",
+    "position": "Midfielder",
+    "age": 27,
+    "img_url": "rice.jpg"
+  },
+  {
+    "name": "Cole Palmer",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Chelsea",
+    "position": "Midfielder",
+    "age": 23,
+    "img_url": "palmer.jpg"
+  },
+  {
+    "name": "Moisés Caicedo",
+    "nationality": "Ecuador",
+    "league": "EPL",
+    "club": "Chelsea",
+    "position": "Midfielder",
+    "age": 24,
+    "img_url": "caicedo.jpg"
+  },
+  {
+    "name": "Enzo Fernández",
+    "nationality": "Argentina",
+    "league": "EPL",
+    "club": "Chelsea",
+    "position": "Midfielder",
+    "age": 25,
+    "img_url": "enzo.jpg"
+  },
+  {
+    "name": "Bruno Fernandes",
+    "nationality": "Portugal",
+    "league": "EPL",
+    "club": "Manchester United",
+    "position": "Midfielder",
+    "age": 31,
+    "img_url": "bruno.jpg"
+  },
+  {
+    "name": "Marcus Rashford",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Manchester United",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "rashford.jpg"
+  },
+  {
+    "name": "Lisandro Martínez",
+    "nationality": "Argentina",
+    "league": "EPL",
+    "club": "Manchester United",
+    "position": "Defender",
+    "age": 28,
+    "img_url": "martinez.jpg"
+  },
+  {
+    "name": "Alejandro Garnacho",
+    "nationality": "Argentina",
+    "league": "EPL",
+    "club": "Manchester United",
+    "position": "Forward",
+    "age": 21,
+    "img_url": "garnacho.jpg"
+  },
+  {
+    "name": "Kobbie Mainoo",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Manchester United",
+    "position": "Midfielder",
+    "age": 20,
+    "img_url": "mainoo.jpg"
+  },
+  {
+    "name": "Son Heung-min",
+    "nationality": "South Korea",
+    "league": "EPL",
+    "club": "Tottenham",
+    "position": "Forward",
+    "age": 33,
+    "img_url": "son.jpg"
+  },
+  {
+    "name": "James Maddison",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Tottenham",
+    "position": "Midfielder",
+    "age": 29,
+    "img_url": "maddison.jpg"
+  },
+  {
+    "name": "Cristian Romero",
+    "nationality": "Argentina",
+    "league": "EPL",
+    "club": "Tottenham",
+    "position": "Defender",
+    "age": 27,
+    "img_url": "romero.jpg"
+  },
+  {
+    "name": "Dominic Solanke",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Tottenham",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "solanke.jpg"
+  },
+  {
+    "name": "Alexander Isak",
+    "nationality": "Sweden",
+    "league": "EPL",
+    "club": "Newcastle",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "isak.jpg"
+  },
+  {
+    "name": "Bruno Guimarães",
+    "nationality": "Brazil",
+    "league": "EPL",
+    "club": "Newcastle",
+    "position": "Midfielder",
+    "age": 28,
+    "img_url": "bruno_g.jpg"
+  },
+  {
+    "name": "Anthony Gordon",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Newcastle",
+    "position": "Forward",
+    "age": 24,
+    "img_url": "gordon.jpg"
+  },
+  {
+    "name": "Ollie Watkins",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Aston Villa",
+    "position": "Forward",
+    "age": 30,
+    "img_url": "watkins.jpg"
+  },
+  {
+    "name": "Emiliano Martínez",
+    "nationality": "Argentina",
+    "league": "EPL",
+    "club": "Aston Villa",
+    "position": "Goalkeeper",
+    "age": 33,
+    "img_url": "emi.jpg"
+  },
+  {
+    "name": "Julian Alvarez",
+    "nationality": "Argentina",
+    "league": "La Liga",
+    "club": "Atlético Madrid",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "alvarez.jpg"
+  },
+  {
+    "name": "Antoine Griezmann",
+    "nationality": "France",
+    "league": "La Liga",
+    "club": "Atlético Madrid",
+    "position": "Forward",
+    "age": 34,
+    "img_url": "griezmann.jpg"
+  },
+  {
+    "name": "Jan Oblak",
+    "nationality": "Slovenia",
+    "league": "La Liga",
+    "club": "Atlético Madrid",
+    "position": "Goalkeeper",
+    "age": 33,
+    "img_url": "oblak.jpg"
+  },
+  {
+    "name": "Robert Lewandowski",
+    "nationality": "Poland",
+    "league": "La Liga",
+    "club": "Barcelona",
+    "position": "Forward",
+    "age": 37,
+    "img_url": "lewandowski.jpg"
+  },
+  {
+    "name": "Lamine Yamal",
+    "nationality": "Spain",
+    "league": "La Liga",
+    "club": "Barcelona",
+    "position": "Forward",
+    "age": 18,
+    "img_url": "yamal.jpg"
+  },
+  {
+    "name": "Pedri",
+    "nationality": "Spain",
+    "league": "La Liga",
+    "club": "Barcelona",
+    "position": "Midfielder",
+    "age": 23,
+    "img_url": "pedri.jpg"
+  },
+  {
+    "name": "Gavi",
+    "nationality": "Spain",
+    "league": "La Liga",
+    "club": "Barcelona",
+    "position": "Midfielder",
+    "age": 21,
+    "img_url": "gavi.jpg"
+  },
+  {
+    "name": "Raphinha",
+    "nationality": "Brazil",
+    "league": "La Liga",
+    "club": "Barcelona",
+    "position": "Forward",
+    "age": 29,
+    "img_url": "raphinha.jpg"
+  },
+  {
+    "name": "Federico Valverde",
+    "nationality": "Uruguay",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Midfielder",
+    "age": 27,
+    "img_url": "valverde.jpg"
+  },
+  {
+    "name": "Rodrygo",
+    "nationality": "Brazil",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "rodrygo.jpg"
+  },
+  {
+    "name": "Eduardo Camavinga",
+    "nationality": "France",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Midfielder",
+    "age": 23,
+    "img_url": "camavinga.jpg"
+  },
+  {
+    "name": "Aurélien Tchouaméni",
+    "nationality": "France",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Midfielder",
+    "age": 26,
+    "img_url": "tchouameni.jpg"
+  },
+  {
+    "name": "Thibaut Courtois",
+    "nationality": "Belgium",
+    "league": "La Liga",
+    "club": "Real Madrid",
+    "position": "Goalkeeper",
+    "age": 33,
+    "img_url": "courtois.jpg"
+  },
+  {
+    "name": "Jamal Musiala",
+    "nationality": "Germany",
+    "league": "Bundesliga",
+    "club": "Bayern Munich",
+    "position": "Midfielder",
+    "age": 22,
+    "img_url": "musiala.jpg"
+  },
+  {
+    "name": "Florian Wirtz",
+    "nationality": "Germany",
+    "league": "Bundesliga",
+    "club": "Bayer Leverkusen",
+    "position": "Midfielder",
+    "age": 22,
+    "img_url": "wirtz.jpg"
+  },
+  {
+    "name": "Leroy Sané",
+    "nationality": "Germany",
+    "league": "Bundesliga",
+    "club": "Bayern Munich",
+    "position": "Forward",
+    "age": 30,
+    "img_url": "sane.jpg"
+  },
+  {
+    "name": "Joshua Kimmich",
+    "nationality": "Germany",
+    "league": "Bundesliga",
+    "club": "Bayern Munich",
+    "position": "Midfielder",
+    "age": 31,
+    "img_url": "kimmich.jpg"
+  },
+  {
+    "name": "Alphonso Davies",
+    "nationality": "Canada",
+    "league": "Bundesliga",
+    "club": "Bayern Munich",
+    "position": "Defender",
+    "age": 25,
+    "img_url": "davies.jpg"
+  },
+  {
+    "name": "Jeremie Frimpong",
+    "nationality": "Netherlands",
+    "league": "Bundesliga",
+    "club": "Bayer Leverkusen",
+    "position": "Defender",
+    "age": 25,
+    "img_url": "frimpong.jpg"
+  },
+  {
+    "name": "Alejandro Grimaldo",
+    "nationality": "Spain",
+    "league": "Bundesliga",
+    "club": "Bayer Leverkusen",
+    "position": "Defender",
+    "age": 30,
+    "img_url": "grimaldo.jpg"
+  },
+  {
+    "name": "Granit Xhaka",
+    "nationality": "Switzerland",
+    "league": "Bundesliga",
+    "club": "Bayer Leverkusen",
+    "position": "Midfielder",
+    "age": 33,
+    "img_url": "xhaka.jpg"
+  },
+  {
+    "name": "Xavi Simons",
+    "nationality": "Netherlands",
+    "league": "Bundesliga",
+    "club": "RB Leipzig",
+    "position": "Midfielder",
+    "age": 22,
+    "img_url": "simons.jpg"
+  },
+  {
+    "name": "Loïs Openda",
+    "nationality": "Belgium",
+    "league": "Bundesliga",
+    "club": "RB Leipzig",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "openda.jpg"
+  },
+  {
+    "name": "Lautaro Martínez",
+    "nationality": "Argentina",
+    "league": "Serie A",
+    "club": "Inter Milan",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "lautaro.jpg"
+  },
+  {
+    "name": "Nicolò Barella",
+    "nationality": "Italy",
+    "league": "Serie A",
+    "club": "Inter Milan",
+    "position": "Midfielder",
+    "age": 29,
+    "img_url": "barella.jpg"
+  },
+  {
+    "name": "Alessandro Bastoni",
+    "nationality": "Italy",
+    "league": "Serie A",
+    "club": "Inter Milan",
+    "position": "Defender",
+    "age": 26,
+    "img_url": "bastoni.jpg"
+  },
+  {
+    "name": "Hakan Çalhanoğlu",
+    "nationality": "Turkey",
+    "league": "Serie A",
+    "club": "Inter Milan",
+    "position": "Midfielder",
+    "age": 32,
+    "img_url": "calhanoglu.jpg"
+  },
+  {
+    "name": "Marcus Thuram",
+    "nationality": "France",
+    "league": "Serie A",
+    "club": "Inter Milan",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "thuram.jpg"
+  },
+  {
+    "name": "Rafael Leão",
+    "nationality": "Portugal",
+    "league": "Serie A",
+    "club": "AC Milan",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "leao.jpg"
+  },
+  {
+    "name": "Theo Hernández",
+    "nationality": "France",
+    "league": "Serie A",
+    "club": "AC Milan",
+    "position": "Defender",
+    "age": 28,
+    "img_url": "theo.jpg"
+  },
+  {
+    "name": "Christian Pulisic",
+    "nationality": "USA",
+    "league": "Serie A",
+    "club": "AC Milan",
+    "position": "Forward",
+    "age": 27,
+    "img_url": "pulisic.jpg"
+  },
+  {
+    "name": "Mike Maignan",
+    "nationality": "France",
+    "league": "Serie A",
+    "club": "AC Milan",
+    "position": "Goalkeeper",
+    "age": 30,
+    "img_url": "maignan.jpg"
+  },
+  {
+    "name": "Dušan Vlahović",
+    "nationality": "Serbia",
+    "league": "Serie A",
+    "club": "Juventus",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "vlahovic.jpg"
+  },
+  {
+    "name": "Teun Koopmeiners",
+    "nationality": "Netherlands",
+    "league": "Serie A",
+    "club": "Juventus",
+    "position": "Midfielder",
+    "age": 27,
+    "img_url": "koopmeiners.jpg"
+  },
+  {
+    "name": "Gleison Bremer",
+    "nationality": "Brazil",
+    "league": "Serie A",
+    "club": "Juventus",
+    "position": "Defender",
+    "age": 28,
+    "img_url": "bremer.jpg"
+  },
+  {
+    "name": "Khvicha Kvaratskhelia",
+    "nationality": "Georgia",
+    "league": "Serie A",
+    "club": "Napoli",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "kvaratskhelia.jpg"
+  },
+  {
+    "name": "Alessandro Buongiorno",
+    "nationality": "Italy",
+    "league": "Serie A",
+    "club": "Napoli",
+    "position": "Defender",
+    "age": 26,
+    "img_url": "buongiorno.jpg"
+  },
+  {
+    "name": "Paulo Dybala",
+    "nationality": "Argentina",
+    "league": "Serie A",
+    "club": "AS Roma",
+    "position": "Forward",
+    "age": 32,
+    "img_url": "dybala.jpg"
+  },
+  {
+    "name": "Artem Dovbyk",
+    "nationality": "Ukraine",
+    "league": "Serie A",
+    "club": "AS Roma",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "dovbyk.jpg"
+  },
+  {
+    "name": "Achraf Hakimi",
+    "nationality": "Morocco",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Defender",
+    "age": 27,
+    "img_url": "hakimi.jpg"
+  },
+  {
+    "name": "Ousmane Dembélé",
+    "nationality": "France",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "dembele.jpg"
+  },
+  {
+    "name": "Vitinha",
+    "nationality": "Portugal",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Midfielder",
+    "age": 25,
+    "img_url": "vitinha.jpg"
+  },
+  {
+    "name": "Nuno Mendes",
+    "nationality": "Portugal",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Defender",
+    "age": 23,
+    "img_url": "mendes.jpg"
+  },
+  {
+    "name": "Warren Zaïre-Emery",
+    "nationality": "France",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Midfielder",
+    "age": 19,
+    "img_url": "zaire-emery.jpg"
+  },
+  {
+    "name": "Bradley Barcola",
+    "nationality": "France",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Forward",
+    "age": 23,
+    "img_url": "barcola.jpg"
+  },
+  {
+    "name": "Gianluigi Donnarumma",
+    "nationality": "Italy",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Goalkeeper",
+    "age": 26,
+    "img_url": "donnarumma.jpg"
+  },
+  {
+    "name": "Marquinhos",
+    "nationality": "Brazil",
+    "league": "Ligue 1",
+    "club": "Paris Saint-Germain",
+    "position": "Defender",
+    "age": 31,
+    "img_url": "marquinhos.jpg"
+  },
+  {
+    "name": "Jonathan David",
+    "nationality": "Canada",
+    "league": "Ligue 1",
+    "club": "Lille",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "david.jpg"
+  },
+  {
+    "name": "Lucas Chevalier",
+    "nationality": "France",
+    "league": "Ligue 1",
+    "club": "Lille",
+    "position": "Goalkeeper",
+    "age": 24,
+    "img_url": "chevalier.jpg"
+  },
+  {
+    "name": "Jarrod Bowen",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "West Ham",
+    "position": "Forward",
+    "age": 29,
+    "img_url": "bowen.jpg"
+  },
+  {
+    "name": "Mohammed Kudus",
+    "nationality": "Ghana",
+    "league": "EPL",
+    "club": "West Ham",
+    "position": "Forward",
+    "age": 25,
+    "img_url": "kudus.jpg"
+  },
+  {
+    "name": "Lucas Paquetá",
+    "nationality": "Brazil",
+    "league": "EPL",
+    "club": "West Ham",
+    "position": "Midfielder",
+    "age": 28,
+    "img_url": "paqueta.jpg"
+  },
+  {
+    "name": "Eberechi Eze",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Crystal Palace",
+    "position": "Midfielder",
+    "age": 27,
+    "img_url": "eze.jpg"
+  },
+  {
+    "name": "Marc Guéhi",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Crystal Palace",
+    "position": "Defender",
+    "age": 25,
+    "img_url": "guehi.jpg"
+  },
+  {
+    "name": "Jean-Philippe Mateta",
+    "nationality": "France",
+    "league": "EPL",
+    "club": "Crystal Palace",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "mateta.jpg"
+  },
+  {
+    "name": "Morgan Gibbs-White",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Nottingham Forest",
+    "position": "Midfielder",
+    "age": 26,
+    "img_url": "gibbs-white.jpg"
+  },
+  {
+    "name": "Murillo",
+    "nationality": "Brazil",
+    "league": "EPL",
+    "club": "Nottingham Forest",
+    "position": "Defender",
+    "age": 23,
+    "img_url": "murillo.jpg"
+  },
+  {
+    "name": "Chris Wood",
+    "nationality": "New Zealand",
+    "league": "EPL",
+    "club": "Nottingham Forest",
+    "position": "Forward",
+    "age": 34,
+    "img_url": "wood.jpg"
+  },
+  {
+    "name": "Neto",
+    "nationality": "Brazil",
+    "league": "EPL",
+    "club": "Arsenal",
+    "position": "Goalkeeper",
+    "age": 36,
+    "img_url": "neto.jpg"
+  },
+  {
+    "name": "Milos Kerkez",
+    "nationality": "Hungary",
+    "league": "EPL",
+    "club": "Bournemouth",
+    "position": "Defender",
+    "age": 22,
+    "img_url": "kerkez.jpg"
+  },
+  {
+    "name": "Antoine Semenyo",
+    "nationality": "Ghana",
+    "league": "EPL",
+    "club": "Bournemouth",
+    "position": "Forward",
+    "age": 26,
+    "img_url": "semenyo.jpg"
+  },
+  {
+    "name": "Evan Ferguson",
+    "nationality": "Ireland",
+    "league": "EPL",
+    "club": "Brighton",
+    "position": "Forward",
+    "age": 21,
+    "img_url": "ferguson.jpg"
+  },
+  {
+    "name": "Kaoru Mitoma",
+    "nationality": "Japan",
+    "league": "EPL",
+    "club": "Brighton",
+    "position": "Forward",
+    "age": 28,
+    "img_url": "mitoma.jpg"
+  },
+  {
+    "name": "João Pedro",
+    "nationality": "Brazil",
+    "league": "EPL",
+    "club": "Brighton",
+    "position": "Forward",
+    "age": 24,
+    "img_url": "joaopedro.jpg"
+  },
+  {
+    "name": "Bart Verbruggen",
+    "nationality": "Netherlands",
+    "league": "EPL",
+    "club": "Brighton",
+    "position": "Goalkeeper",
+    "age": 23,
+    "img_url": "verbruggen.jpg"
+  },
+  {
+    "name": "Antonee Robinson",
+    "nationality": "USA",
+    "league": "EPL",
+    "club": "Fulham",
+    "position": "Defender",
+    "age": 28,
+    "img_url": "robinson.jpg"
+  },
+  {
+    "name": "Emile Smith Rowe",
+    "nationality": "England",
+    "league": "EPL",
+    "club": "Fulham",
+    "position": "Midfielder",
+    "age": 25,
+    "img_url": "smithrowe.jpg"
+  },
+  {
+    "name": "Bernd Leno",
+    "nationality": "Germany",
+    "league": "EPL",
+    "club": "Fulham",
+    "position": "Goalkeeper",
+    "age": 33,
+    "img_url": "leno.jpg"
+  }
 ]
