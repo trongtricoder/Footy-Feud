@@ -1,6 +1,6 @@
 # ⚽ FootyFeud
 
-**FootyFeud** is a Wordle-inspired football guessing game built with Streamlit. Players must identify a mystery footballer within six tries using dynamic clues.
+**FootyFeud** is a Wordle-inspired football guessing game built with Streamlit. Players must identify a mystery footballer within six tries using dynamic clues. **NOTE: DATABASE FROM TRANSFERMARKT** 
 
 ## 🚀 Features
 
