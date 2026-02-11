@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 import random
-from datetime import date
+from datetime import date, datetime, timedelta
 from src.utils import load_players, get_random_player
 from src.auth_streamlit import AuthManager
 
@@ -79,6 +79,25 @@ def save_stats():
                 mode_data
             )
 
+def check_and_fix_streak():
+    """Reset streak if user missed playing yesterday"""
+    last_played = st.session_state.stats["daily"]["last_played_date"]
+    
+    if last_played:
+        try:
+            last_date = datetime.strptime(last_played, "%Y-%m-%d").date()
+            today = date.today()
+            yesterday = today - timedelta(days=1)
+            
+            # If last played was NOT yesterday and NOT today, reset streak to 0
+            if last_date != yesterday and last_date != today:
+                if st.session_state.stats["daily"]["current_streak"] > 0:
+                    st.session_state.stats["daily"]["current_streak"] = 0
+                    # Save the fixed streak to database
+                    save_stats()
+        except Exception as e:
+            print(f"Error checking streak: {e}")
+
 # --- 2. AUTHENTICATION UI ---
 def show_login_page():
     """Display login/signup page"""
@@ -107,6 +126,10 @@ def show_login_page():
                         st.session_state.user_id = user_data['user_id']
                         st.session_state.username = user_data['username']
                         st.session_state.stats = load_user_stats(user_data['user_id'])
+                        
+                        # Save session in URL for persistent login
+                        st.query_params["uid"] = user_data['user_id']
+                        
                         st.success(message)
                         time.sleep(0.5)
                         st.rerun()
@@ -138,18 +161,36 @@ def show_login_page():
                         st.session_state.user_id = user_id
                         st.session_state.username = new_username
                         st.session_state.stats = load_user_stats(user_id)
+                        
+                        # Save session in URL for persistent login
+                        st.query_params["uid"] = user_id
+                        
                         st.success(message)
                         time.sleep(0.5)
                         st.rerun()
                     else:
                         st.error(message)
 
-# --- 3. GAME INITIALIZATION ---
+# --- 3. AUTO-LOGIN & GAME INITIALIZATION ---
 init_db()
 
 # Check authentication
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
+
+# Try auto-login from saved session (query params)
+if not st.session_state.authenticated:
+    saved_user_id = st.query_params.get("uid")
+    
+    if saved_user_id and st.session_state.db and st.session_state.auth_manager:
+        # Validate saved user ID
+        user_data = st.session_state.auth_manager.get_user_by_id(saved_user_id)
+        if user_data:
+            # Auto-login successful!
+            st.session_state.authenticated = True
+            st.session_state.user_id = user_data['user_id']
+            st.session_state.username = user_data['username']
+            st.session_state.stats = load_user_stats(user_data['user_id'])
 
 # If not authenticated and DB is available, show login
 if not st.session_state.authenticated:
@@ -163,6 +204,12 @@ if not st.session_state.authenticated:
 # Load user stats if not loaded
 if 'stats' not in st.session_state:
     st.session_state.stats = load_user_stats(st.session_state.user_id)
+
+# Fix streak: Check if user missed days on Daily mode
+# Run streak check once per session
+if 'streak_checked' not in st.session_state:
+    check_and_fix_streak()
+    st.session_state.streak_checked = True
 
 if 'has_seen_help' not in st.session_state:
     st.session_state.has_seen_help = False
@@ -244,12 +291,25 @@ def display_player_reveal(image_url, won):
         </div>
     """, unsafe_allow_html=True)
 
-def attribute_box(label, value, color_code, show_label=True):
+def attribute_box(label, value, color_code, show_label=True, animation_delay=0):
     label_opacity = "0.8" if show_label else "0"
     st.markdown(f"""
+        <style>
+        @keyframes slideIn {{
+            from {{
+                opacity: 0;
+                transform: translateX(-20px);
+            }}
+            to {{
+                opacity: 1;
+                transform: translateX(0);
+            }}
+        }}
+        </style>
         <div style="background-color: {color_code}; padding: 10px; border-radius: 8px; text-align: center; color: white; 
             margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.1); min-height: 105px; display: flex; 
-            flex-direction: column; justify-content: center;">
+            flex-direction: column; justify-content: center;
+            animation: slideIn 0.4s ease-out {animation_delay}s both;">
             <small style="opacity: {label_opacity}; font-size: 0.75em; margin-bottom: 5px; display: block;">{label}</small>
             <strong style="font-size: 0.9em; display: block; line-height: 1.2;">{value}</strong>
         </div>
@@ -263,6 +323,9 @@ def help_modal():
 
 def logout():
     """Logout user"""
+    # Clear the session from URL
+    st.query_params.clear()
+    # Clear all session state
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
@@ -360,16 +423,41 @@ else:
         show_stats_dashboard()
         if st.button("🏠 Menu", use_container_width=True): reset_to_menu()
     else:
-        # SEARCH INPUT
-        player_names = [""] + [p["name"] for p in st.session_state.all_players]
-        st.selectbox("Search player:", options=player_names, key="player_selector", on_change=handle_guess, disabled=st.session_state.game_over)
+        # Filter players based on search
+        search_term = st.text_input("🔍 Search player:", value="", placeholder="Type to search...", key="search_input_field")
+        
+        if search_term:
+            # Filter players that match the search
+            filtered = [p for p in st.session_state.all_players 
+                       if search_term.lower() in p['name'].lower()]
+            # Limit to 10 results
+            player_names = [""] + [p["name"] for p in filtered[:10]]
+            if len(filtered) > 10:
+                st.caption(f"Showing 10 of {len(filtered)} results. Keep typing to narrow down...")
+        else:
+            # Show first 10 players when no search
+            player_names = [""] + [p["name"] for p in st.session_state.all_players[:10]]
+            st.caption("💡 Start typing to search through all players")
+        
+        st.selectbox("Select from results:", options=player_names, key="player_selector", on_change=handle_guess, disabled=st.session_state.game_over)
 
         if st.session_state.game_over:
             if is_win:
                 st.balloons()
-                st.success(f"GOAL! It was {st.session_state.secret_player['name']}!")
+                st.success(f"✅ GOAL! It was **{st.session_state.secret_player['name']}**!")
             else:
-                st.error(f"HARD LUCK! It was {st.session_state.secret_player['name']}.")
+                # Show the correct answer prominently
+                st.error(f"❌ Game Over! You used all 6 guesses.")
+                st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                         padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                        <h3 style="color: white; margin: 0 0 10px 0;">The Correct Answer Was:</h3>
+                        <h1 style="color: #ffd700; margin: 0; font-size: 2.5em;">{st.session_state.secret_player['name']}</h1>
+                        <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">
+                            {st.session_state.secret_player['club']} • {st.session_state.secret_player['position']} • {st.session_state.secret_player['age']} years old
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
             
             show_stats_dashboard()
             
@@ -385,8 +473,10 @@ else:
     if st.session_state.guesses:
         secret = st.session_state.secret_player
         for i, guess in enumerate(reversed(st.session_state.guesses)):
-            if i == 0: st.write("### Latest Guess")
-            elif i == 1: st.write("### History")
+            if i == 0: 
+                st.write("### 🎯 Latest Guess")
+            elif i == 1: 
+                st.write("### 📜 History")
             
             cols = st.columns(5)
             items = [
@@ -397,5 +487,10 @@ else:
                 ("Age", f"{guess['age']} {'↑' if guess['age'] < secret['age'] else '↓' if guess['age'] > secret['age'] else ''}", 
                  "#28a745" if guess['age'] == secret['age'] else "#ffc107" if abs(guess['age'] - secret['age']) <= 2 else "#dc3545")
             ]
+            
+            # Only animate the latest guess (i == 0)
             for j, (label, val, color) in enumerate(items):
-                with cols[j]: attribute_box(label, val, color, show_label=(i == 0))
+                # Stagger animation: 0s, 0.1s, 0.2s, 0.3s, 0.4s
+                delay = j * 0.1 if i == 0 else 0
+                with cols[j]: 
+                    attribute_box(label, val, color, show_label=(i == 0), animation_delay=delay)
