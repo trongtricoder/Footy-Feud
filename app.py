@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import time
 import random
 from datetime import date, datetime, timedelta
@@ -98,6 +99,40 @@ def check_and_fix_streak():
         except Exception as e:
             print(f"Error checking streak: {e}")
 
+def save_session_to_localstorage(user_id):
+    """Save session to localStorage for cross-tab persistence"""
+    components.html(f"""
+        <script>
+            localStorage.setItem('footyfeud_uid', '{user_id}');
+            // Also update URL
+            if (!window.location.search.includes('uid=')) {{
+                const url = new URL(window.location);
+                url.searchParams.set('uid', '{user_id}');
+                window.history.replaceState({{}}, '', url);
+            }}
+        </script>
+    """, height=0)
+
+def get_session_from_localstorage():
+    """Try to retrieve session from localStorage"""
+    uid = components.html("""
+        <script>
+            const uid = localStorage.getItem('footyfeud_uid');
+            if (uid) {
+                window.parent.postMessage({type: 'streamlit:setComponentValue', value: uid}, '*');
+            }
+        </script>
+    """, height=0)
+    return uid
+
+def clear_session_from_localstorage():
+    """Clear session from localStorage on logout"""
+    components.html("""
+        <script>
+            localStorage.removeItem('footyfeud_uid');
+        </script>
+    """, height=0)
+
 # --- 2. AUTHENTICATION UI ---
 def show_login_page():
     """Display login/signup page"""
@@ -127,8 +162,9 @@ def show_login_page():
                         st.session_state.username = user_data['username']
                         st.session_state.stats = load_user_stats(user_data['user_id'])
                         
-                        # Save session in URL for persistent login
+                        # Save session in URL AND localStorage
                         st.query_params["uid"] = user_data['user_id']
+                        save_session_to_localstorage(user_data['user_id'])
                         
                         st.success(message)
                         time.sleep(0.5)
@@ -162,8 +198,9 @@ def show_login_page():
                         st.session_state.username = new_username
                         st.session_state.stats = load_user_stats(user_id)
                         
-                        # Save session in URL for persistent login
+                        # Save session in URL AND localStorage
                         st.query_params["uid"] = user_id
+                        save_session_to_localstorage(user_id)
                         
                         st.success(message)
                         time.sleep(0.5)
@@ -178,9 +215,16 @@ init_db()
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
-# Try auto-login from saved session (query params)
+# Try auto-login from URL query params OR localStorage
 if not st.session_state.authenticated:
     saved_user_id = st.query_params.get("uid")
+    
+    # If no UID in URL, try localStorage
+    if not saved_user_id:
+        saved_user_id = get_session_from_localstorage()
+        if saved_user_id:
+            # Update URL with the UID from localStorage
+            st.query_params["uid"] = saved_user_id
     
     if saved_user_id and st.session_state.db and st.session_state.auth_manager:
         # Validate saved user ID
@@ -191,6 +235,8 @@ if not st.session_state.authenticated:
             st.session_state.user_id = user_data['user_id']
             st.session_state.username = user_data['username']
             st.session_state.stats = load_user_stats(user_data['user_id'])
+            # Make sure session is saved
+            save_session_to_localstorage(user_data['user_id'])
 
 # If not authenticated and DB is available, show login
 if not st.session_state.authenticated:
@@ -323,6 +369,8 @@ def help_modal():
 
 def logout():
     """Logout user"""
+    # Clear localStorage
+    clear_session_from_localstorage()
     # Clear the session from URL
     st.query_params.clear()
     # Clear all session state
@@ -331,47 +379,17 @@ def logout():
     st.rerun()
 
 def reset_to_menu():
-    for key in ['secret_player', 'guesses', 'game_over', 'game_mode']:
+    for key in ['secret_player', 'guesses', 'game_over', 'game_mode', 'search_results', 'last_search_term']:
         if key in st.session_state: del st.session_state[key]
     st.rerun()
 
 def play_another_random():
+    for key in ['secret_player', 'guesses', 'game_over', 'search_results', 'last_search_term']:
+        if key in st.session_state: del st.session_state[key]
     st.session_state.secret_player = get_random_player(st.session_state.all_players)
     st.session_state.guesses = []
     st.session_state.game_over = False
     st.rerun()
-
-def handle_guess():
-    selected = st.session_state.player_selector
-    if selected and not st.session_state.game_over:
-        guessed_player = next(p for p in st.session_state.all_players if p["name"] == selected)
-        if guessed_player['name'] not in [g['name'] for g in st.session_state.guesses]:
-            guessed_player['is_new'] = True
-            st.session_state.guesses.append(guessed_player)
-            
-            mode = st.session_state.game_mode.lower()
-            
-            # WIN
-            if guessed_player['name'] == st.session_state.secret_player['name']:
-                st.session_state.game_over = True
-                st.session_state.stats[mode]["played"] += 1
-                st.session_state.stats[mode]["won"] += 1
-                st.session_state.stats[mode]["current_streak"] += 1
-                st.session_state.stats[mode]["distribution"][len(st.session_state.guesses)] += 1
-                if mode == "daily":
-                    st.session_state.stats[mode]["last_played_date"] = str(date.today())
-                    if st.session_state.stats[mode]["current_streak"] > st.session_state.stats[mode]["max_streak"]:
-                        st.session_state.stats[mode]["max_streak"] = st.session_state.stats[mode]["current_streak"]
-                save_stats()
-            # LOSS
-            elif len(st.session_state.guesses) >= 6:
-                st.session_state.game_over = True
-                st.session_state.stats[mode]["played"] += 1
-                st.session_state.stats[mode]["current_streak"] = 0
-                if mode == "daily":
-                    st.session_state.stats[mode]["last_played_date"] = str(date.today())
-                save_stats()
-        st.session_state.player_selector = ""
 
 # --- 5. UI LAYOUT ---
 # Header with username and logout
@@ -423,23 +441,112 @@ else:
         show_stats_dashboard()
         if st.button("🏠 Menu", use_container_width=True): reset_to_menu()
     else:
-        # Filter players based on search
-        search_term = st.text_input("🔍 Search player:", value="", placeholder="Type to search...", key="search_input_field")
+        # SINGLE AUTOCOMPLETE SEARCH with randomized 10 results
+        # Initialize search results
+        if 'search_results' not in st.session_state:
+            # Start with 10 random players
+            st.session_state.search_results = random.sample(st.session_state.all_players, 
+                                                           min(10, len(st.session_state.all_players)))
+            st.session_state.last_search_term = ""
         
-        if search_term:
-            # Filter players that match the search
-            filtered = [p for p in st.session_state.all_players 
-                       if search_term.lower() in p['name'].lower()]
-            # Limit to 10 results
-            player_names = [""] + [p["name"] for p in filtered[:10]]
-            if len(filtered) > 10:
-                st.caption(f"Showing 10 of {len(filtered)} results. Keep typing to narrow down...")
+        # Single selectbox with type-to-search functionality
+        def update_search_results():
+            """Update search results based on selectbox selection"""
+            selected = st.session_state.player_search_box
+            
+            # Check if this is a search term (user typing) or a selection
+            if selected and selected not in ["🔍 Type to search...", "No results found"]:
+                # User selected a player
+                guessed_player = next((p for p in st.session_state.all_players if p["name"] == selected), None)
+                
+                if guessed_player and not st.session_state.game_over:
+                    if guessed_player['name'] not in [g['name'] for g in st.session_state.guesses]:
+                        guessed_player['is_new'] = True
+                        st.session_state.guesses.append(guessed_player)
+                        
+                        mode = st.session_state.game_mode.lower()
+                        
+                        # WIN
+                        if guessed_player['name'] == st.session_state.secret_player['name']:
+                            st.session_state.game_over = True
+                            st.session_state.stats[mode]["played"] += 1
+                            st.session_state.stats[mode]["won"] += 1
+                            st.session_state.stats[mode]["current_streak"] += 1
+                            st.session_state.stats[mode]["distribution"][len(st.session_state.guesses)] += 1
+                            if mode == "daily":
+                                st.session_state.stats[mode]["last_played_date"] = str(date.today())
+                                if st.session_state.stats[mode]["current_streak"] > st.session_state.stats[mode]["max_streak"]:
+                                    st.session_state.stats[mode]["max_streak"] = st.session_state.stats[mode]["current_streak"]
+                            save_stats()
+                        # LOSS
+                        elif len(st.session_state.guesses) >= 6:
+                            st.session_state.game_over = True
+                            st.session_state.stats[mode]["played"] += 1
+                            st.session_state.stats[mode]["current_streak"] = 0
+                            if mode == "daily":
+                                st.session_state.stats[mode]["last_played_date"] = str(date.today())
+                            save_stats()
+                        
+                        # Reset search after guess
+                        st.session_state.search_results = random.sample(st.session_state.all_players, 
+                                                                       min(10, len(st.session_state.all_players)))
+                        st.session_state.last_search_term = ""
+        
+        # Text input for filtering
+        search_term = st.text_input(
+            "🔍 Type player name to filter:",
+            value="",
+            placeholder="e.g. Haaland, Messi, Ronaldo...",
+            key="search_filter_input",
+            disabled=st.session_state.game_over
+        )
+        
+        # Update results if search changed
+        if search_term != st.session_state.last_search_term:
+            if search_term:
+                # Filter and randomize
+                filtered = [p for p in st.session_state.all_players 
+                           if search_term.lower() in p['name'].lower()]
+                if filtered:
+                    random.shuffle(filtered)
+                    st.session_state.search_results = filtered[:10]
+                else:
+                    st.session_state.search_results = []
+            else:
+                # No search term - show 10 random
+                st.session_state.search_results = random.sample(st.session_state.all_players, 
+                                                               min(10, len(st.session_state.all_players)))
+            
+            st.session_state.last_search_term = search_term
+        
+        # Show results count
+        if st.session_state.search_results:
+            result_count = len(st.session_state.search_results)
+            all_filtered = [p for p in st.session_state.all_players 
+                           if search_term.lower() in p['name'].lower()] if search_term else st.session_state.all_players
+            
+            if search_term:
+                if len(all_filtered) > 10:
+                    st.caption(f"✨ Showing 10 random results from {len(all_filtered)} matches")
+                else:
+                    st.caption(f"✨ {result_count} result{'s' if result_count != 1 else ''} found")
+            else:
+                st.caption("🎲 10 random players (start typing to filter)")
+            
+            # Selectbox with results
+            player_options = ["Select a player..."] + [p['name'] for p in st.session_state.search_results]
         else:
-            # Show first 10 players when no search
-            player_names = [""] + [p["name"] for p in st.session_state.all_players[:10]]
-            st.caption("💡 Start typing to search through all players")
+            st.caption("❌ No players found")
+            player_options = ["No results found"]
         
-        st.selectbox("Select from results:", options=player_names, key="player_selector", on_change=handle_guess, disabled=st.session_state.game_over)
+        selected_player = st.selectbox(
+            "Choose from results:",
+            options=player_options,
+            key="player_search_box",
+            on_change=update_search_results,
+            disabled=st.session_state.game_over,
+            label_visibility="collapsed"
+        )
 
         if st.session_state.game_over:
             if is_win:
